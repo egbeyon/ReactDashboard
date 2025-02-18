@@ -32,6 +32,8 @@ export type StockDataResponse = {
           volatility: number;
           net_return?: number;
           net_market_return?: number;
+          market_return: number;
+          market_volatility: number;
         }
       }>
     }]

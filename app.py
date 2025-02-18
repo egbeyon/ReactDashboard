@@ -55,39 +55,37 @@ def calculate_metrics(stock_data, market_data, announcement_date):
         # Get relevant data slices
         pre_stock_data = stock_data[pre_announcement_start:announcement_date]
         post_stock_data = stock_data[announcement_date:announcement_end]
-
-        pre_market_data = market_data[pre_announcement_start:announcement_date]
         post_market_data = market_data[announcement_date:announcement_end]
 
         if pre_stock_data.empty or post_stock_data.empty:
             return None
 
-        # Calculate returns
+        # Calculate stock returns and volatility
         stock_returns = post_stock_data['Close'].pct_change().dropna()
         stock_return = ((post_stock_data['Close'].iloc[-1] - post_stock_data['Close'].iloc[0]) 
                        / post_stock_data['Close'].iloc[0] * 100)
-
-        # Calculate volatility
-        volatility = stock_returns.std() * 100  # Convert to percentage
+        volatility = stock_returns.std() * 100
 
         # Calculate pre-announcement average return
         pre_stock_returns = pre_stock_data['Close'].pct_change().dropna()
         pre_avg_return = pre_stock_returns.mean() * 100
 
-        # Calculate market returns for the same period
-        market_returns = post_market_data['Close'].pct_change().dropna()
+        # Calculate S&P 500 returns
         market_return = ((post_market_data['Close'].iloc[-1] - post_market_data['Close'].iloc[0]) 
                         / post_market_data['Close'].iloc[0] * 100)
+        market_volatility = post_market_data['Close'].pct_change().dropna().std() * 100
 
         # Calculate net returns
         net_return = stock_return - pre_avg_return
-        net_return_market = stock_return - market_return
+        net_market_return = stock_return - market_return
 
         return {
             "return": round(stock_return, 2),
             "volatility": round(volatility, 2),
             "net_return": round(net_return, 2),
-            "net_market_return": round(net_return_market, 2)
+            "net_market_return": round(net_market_return, 2),
+            "market_return": round(market_return, 2),
+            "market_volatility": round(market_volatility, 2)
         }
     except Exception as e:
         print(f"Error calculating metrics: {e}")

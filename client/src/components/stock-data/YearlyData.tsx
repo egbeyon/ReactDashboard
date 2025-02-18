@@ -40,14 +40,21 @@ export default function YearlyData({ data, viewType }: YearlyDataProps) {
 
     const marketReturns = quarterlyData.map((q: any) => {
       const quarter = Object.keys(q)[0];
-      return q[quarter].net_market_return;
-    }).filter((val): val is number => val !== undefined);
+      return q[quarter].market_return;
+    });
+
+    const marketVolatilities = quarterlyData.map((q: any) => {
+      const quarter = Object.keys(q)[0];
+      return q[quarter].market_volatility;
+    });
 
     return {
       return: getMedian(returns),
       volatility: getMedian(volatilities),
       net_return: netReturns.length > 0 ? getMedian(netReturns) : undefined,
-      net_market_return: marketReturns.length > 0 ? getMedian(marketReturns) : undefined
+      net_market_return: marketReturns.length > 0 ? getMedian(marketReturns) : undefined,
+      market_return: getMedian(marketReturns),
+      market_volatility: getMedian(marketVolatilities)
     };
   };
 
