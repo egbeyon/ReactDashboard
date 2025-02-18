@@ -13,6 +13,16 @@ export default function YearlyData({ data, viewType }: YearlyDataProps) {
     const year = Object.keys(yearData)[0];
     const quarterlyData = yearData[year][0].Quarterly;
 
+    const getMedian = (numbers: number[]) => {
+      const sorted = numbers.sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+
+      if (sorted.length % 2 === 0) {
+        return (sorted[middle - 1] + sorted[middle]) / 2;
+      }
+      return sorted[middle];
+    };
+
     const returns = quarterlyData.map((q: any) => {
       const quarter = Object.keys(q)[0];
       return q[quarter].return;
@@ -23,9 +33,21 @@ export default function YearlyData({ data, viewType }: YearlyDataProps) {
       return q[quarter].volatility;
     });
 
+    const netReturns = quarterlyData.map((q: any) => {
+      const quarter = Object.keys(q)[0];
+      return q[quarter].net_return;
+    }).filter((val): val is number => val !== undefined);
+
+    const marketReturns = quarterlyData.map((q: any) => {
+      const quarter = Object.keys(q)[0];
+      return q[quarter].net_market_return;
+    }).filter((val): val is number => val !== undefined);
+
     return {
-      return: (returns.reduce((a: number, b: number) => a + b, 0) / returns.length).toFixed(2),
-      volatility: (volatilities.reduce((a: number, b: number) => a + b, 0) / volatilities.length).toFixed(2)
+      return: getMedian(returns),
+      volatility: getMedian(volatilities),
+      net_return: netReturns.length > 0 ? getMedian(netReturns) : undefined,
+      net_market_return: marketReturns.length > 0 ? getMedian(marketReturns) : undefined
     };
   };
 
