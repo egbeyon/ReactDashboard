@@ -16,9 +16,8 @@ export default function Dashboard() {
     queryKey: [`/api/data/${ticker}`],
     enabled: !!ticker,
     retry: 1,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    staleTime: 15000 // Consider data stale after 15 seconds
+    // Remove automatic refresh since earnings data is static for each quarter
+    refetchOnWindowFocus: false
   });
 
   return (
