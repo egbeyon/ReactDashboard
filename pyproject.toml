@@ -7,5 +7,7 @@ dependencies = [
     "flask>=3.1.0",
     "flask-cors>=5.0.0",
     "pandas>=2.2.3",
+    "pymongo>=4.11.1",
+    "sec-api>=1.0.28",
     "yfinance>=0.2.53",
 ]
