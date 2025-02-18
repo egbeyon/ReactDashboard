@@ -39,44 +39,68 @@ def get_filings_data(ticker):
 
 def get_stock_data(ticker, start_date, end_date):
     try:
-        stock_data = yf.download(ticker, start=start_date, end=end_date)
-        return stock_data
+        stock_data = yf.download(ticker, start=start_date, end=end_date, interval='1d')
+        market_data = yf.download('^GSPC', start=start_date, end=end_date, interval='1d')
+        return stock_data, market_data
     except Exception as e:
         print(f"Error fetching stock data: {e}")
-        return None
+        return None, None
 
-def calculate_returns_volatility(stock_data, announcement_date):
+def calculate_metrics(stock_data, market_data, announcement_date):
     try:
-        pre_announcement_start = announcement_date - datetime.timedelta(days=3)
-        pre_announcement_end = announcement_date
-        post_announcement_start = announcement_date + datetime.timedelta(days=1)
-        post_announcement_end = announcement_date + datetime.timedelta(days=3)
+        # Define time periods
+        pre_announcement_start = announcement_date - datetime.timedelta(days=2)
+        announcement_end = announcement_date + datetime.timedelta(days=3)
 
-        pre_announcement_data = stock_data[pre_announcement_start:pre_announcement_end]
-        post_announcement_data = stock_data[post_announcement_start:post_announcement_end]
+        # Get relevant data slices
+        pre_stock_data = stock_data[pre_announcement_start:announcement_date]
+        post_stock_data = stock_data[announcement_date:announcement_end]
 
-        if pre_announcement_data.empty or post_announcement_data.empty:
+        pre_market_data = market_data[pre_announcement_start:announcement_date]
+        post_market_data = market_data[announcement_date:announcement_end]
+
+        if pre_stock_data.empty or post_stock_data.empty:
             return None
 
-        pre_returns = pre_announcement_data['Close'].pct_change().dropna()
-        post_returns = post_announcement_data['Close'].pct_change().dropna()
+        # Calculate returns
+        stock_returns = post_stock_data['Close'].pct_change().dropna()
+        stock_return = ((post_stock_data['Close'].iloc[-1] - post_stock_data['Close'].iloc[0]) 
+                       / post_stock_data['Close'].iloc[0] * 100)
 
-        avg_return = pd.concat([pre_returns, post_returns]).mean()
-        volatility = pd.concat([pre_returns, post_returns]).std()
+        # Calculate volatility
+        volatility = stock_returns.std() * 100  # Convert to percentage
 
-        return avg_return.item(), volatility.item()
+        # Calculate pre-announcement average return
+        pre_stock_returns = pre_stock_data['Close'].pct_change().dropna()
+        pre_avg_return = pre_stock_returns.mean() * 100
+
+        # Calculate market returns for the same period
+        market_returns = post_market_data['Close'].pct_change().dropna()
+        market_return = ((post_market_data['Close'].iloc[-1] - post_market_data['Close'].iloc[0]) 
+                        / post_market_data['Close'].iloc[0] * 100)
+
+        # Calculate net returns
+        net_return = stock_return - pre_avg_return
+        net_return_market = stock_return - market_return
+
+        return {
+            "return": round(stock_return, 2),
+            "volatility": round(volatility, 2),
+            "net_return": round(net_return, 2),
+            "net_market_return": round(net_return_market, 2)
+        }
     except Exception as e:
-        print(f"Error calculating returns/volatility: {e}")
+        print(f"Error calculating metrics: {e}")
         return None
 
 def format_data(ticker, filings_data):
     formatted_data = {"Years": []}
 
     if filings_data is None:
-        # If no filings data, get basic stock data for the last 2 years
+        # Get basic stock data for the last 2 years
         end_date = datetime.datetime.now()
         start_date = end_date - datetime.timedelta(days=730)
-        stock_data = get_stock_data(ticker, start_date, end_date)
+        stock_data, market_data = get_stock_data(ticker, start_date, end_date)
 
         if stock_data is None or stock_data.empty:
             return formatted_data
@@ -91,19 +115,18 @@ def format_data(ticker, filings_data):
 
             for quarter in sorted(year_stock['quarter'].unique(), reverse=True):
                 quarter_stock = year_stock[year_stock['quarter'] == quarter]
-                returns = ((quarter_stock['Close'] - quarter_stock['Open']) / quarter_stock['Open'] * 100).mean()
-                volatility = (quarter_stock['Close'].std() / quarter_stock['Close'].mean()) * 100
+                quarter_date = quarter_stock.index[0]
+                metrics = calculate_metrics(stock_data, market_data, quarter_date)
 
-                year_data[str(year)][0]["Quarterly"].append({
-                    f"Q{quarter}": {
-                        "return": round(returns, 2),
-                        "volatility": round(volatility, 2)
-                    }
-                })
+                if metrics:
+                    year_data[str(year)][0]["Quarterly"].append({
+                        f"Q{quarter}": metrics
+                    })
 
-            formatted_data["Years"].append(year_data)
+            if year_data[str(year)][0]["Quarterly"]:
+                formatted_data["Years"].append(year_data)
     else:
-        # Use filings data if available
+        # Use filings data
         for year, year_filings in filings_data.groupby(filings_data['filedAt'].dt.year):
             year_data = {str(year): [{"Quarterly": []}]}
 
@@ -111,21 +134,18 @@ def format_data(ticker, filings_data):
                 filing = quarter_filings.iloc[0]
                 filing_date = filing['filedAt'].to_pydatetime()
 
-                stock_data = get_stock_data(
+                # Get data from 2 days before to 3 days after filing
+                stock_data, market_data = get_stock_data(
                     ticker,
-                    filing_date - datetime.timedelta(days=7),
-                    filing_date + datetime.timedelta(days=7)
+                    filing_date - datetime.timedelta(days=2),
+                    filing_date + datetime.timedelta(days=3)
                 )
 
                 if stock_data is not None and not stock_data.empty:
-                    returns_volatility = calculate_returns_volatility(stock_data, filing_date)
-                    if returns_volatility:
-                        avg_return, volatility = returns_volatility
+                    metrics = calculate_metrics(stock_data, market_data, filing_date)
+                    if metrics:
                         year_data[str(year)][0]["Quarterly"].append({
-                            f"Q{quarter}": {
-                                "return": round(avg_return * 100, 2),
-                                "volatility": round(volatility * 100, 2)
-                            }
+                            f"Q{quarter}": metrics
                         })
 
             if year_data[str(year)][0]["Quarterly"]:

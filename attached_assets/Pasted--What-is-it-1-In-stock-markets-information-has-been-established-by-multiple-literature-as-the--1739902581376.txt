@@ -1,0 +1,114 @@
+## What is it?
+1. In stock markets, information has been established by multiple literature as the true driver of value in the market. The purpose of this solution
+is to give the user information about the response of the market to company announcements, especially financial report.
+
+2. I want it to be three-tier architecture app- comprising of postgres or Mongodb as the database,
+python for the backend and reactjs for the frontend.
+
+## Goal
+
+
+## Requirements
+
+1. Backend
+   - sources:
+     - Announcements: 
+       - from sec_api import QueryApi (python module)
+       - queryApi = QueryApi(api_key="c36f68d4cb0d103bf716b6034d3969338805f5663a3fb501177ef06d8f767dce")
+
+		search_10k = 'ticker:AAPL AND formType:"10-K" AND filedAt:[2019-01-01 TO 2024-12-31]'
+		search_10q = 'ticker:AAPL AND formType:"10-Q" AND filedAt:[2019-01-01 TO 2024-12-31]'
+		res_10k = {"query": search_10k, "from": "0"}
+		res_10q = {"query": search_10q, "from": "0"}
+		response_10k = queryApi.get_filings(res_10k)
+		response_10q = queryApi.get_filings(res_10q)
+		filings_10k = pd.DataFrame(response_10k["filings"])
+		filings_10q = pd.DataFrame(response_10q["filings"])
+		# This return a table for quarterly (10q) and annual (10k) announcements
+
+      - Stock data: Use yfinance module
+
+
+
+   - pulls annoucements data and stock data of the queried company
+   - extracts the date and time of release of the quarterly earnings report
+   - gets and analyze the report, classify it as great, fair or bad
+   - uses the date and time of release to extract the stock returns 3 days prior to the announcement and 3 days after the annoucement
+   - compute the average return and volatility for each quarterly and annual earnings report announcement of the company in the past 10 years.
+   - send the data to the database- number_of_views, company/ticker_queried, if_the_result_was_successful, and timestamps
+   - pushes these results to the frontend as a json output
+     e.g.
+```json
+{
+  "Query": "AAPL",
+  "Years": [
+    {
+      2019: [{
+      "Quarterly": [
+        {
+          "Q1":
+            {["Q1-Return": 0.08,
+              "Q1-Volatility": 0.00014,
+              "Q1-Net-Return": 0.00021,
+              "Q1-Net-Market-Return": 0.00087,
+              "Q1-Net-Market-Volatility": 0.00047]},
+          "Q2":
+            {["Q2-Return": 0.08,
+              "Q2-Volatility": 0.00014,
+              "Q2-Net-Return": 0.00021,
+              "Q2-Net-Market-Return": 0.00087,
+              "Q2-Net-Market-Volatility": 0.00047]}
+        },
+
+      ],
+      "Aggregate":
+        {["Return": 0.08,
+          "Volatility": 0.00014,
+          "Net-Return": 0.00021,
+          "Net-Market-Return": 0.00087,
+          "Net-Market-Volatility": 0.00047]}
+    }]
+    },
+    {
+      2020:[{
+      "Quarterly": [
+        {
+          "Q1":
+            {["Q1-Return": 0.08,
+              "Q1-Volatility": 0.00014,
+              "Q1-Net-Return": 0.00021,
+              "Q1-Net-Market-Return": 0.00087,
+              "Q1-Net-Market-Volatility": 0.00047]},
+          "Q2":
+            {["Q2-Return": 0.08,
+              "Q2-Volatility": 0.00014,
+              "Q2-Net-Return": 0.00021,
+              "Q2-Net-Market-Return": 0.00087,
+              "Q2-Net-Market-Volatility": 0.00047]}
+        },
+
+      ],
+      "Aggregate":
+        {["Return": 0.08,
+          "Volatility": 0.00014,
+          "Net-Return": 0.00021,
+          "Net-Market-Return": 0.00087,
+          "Net-Market-Volatility": 0.00047]}
+    }]
+    },
+    ...
+    ...
+    ...
+    {
+      2024:
+    }
+  ]
+}
+```
+
+
+2. Frontend
+   - homepage: displays the dashboard with the data of amazon (amazon is the default company). A large input box at the top right corner,
+     with a placeholder that tells the user to enter the name of a company on the NYSE or NASDAQ
+   - collects this data from the backend and displays it in an interactive dashboard
+   - sends the status of the GET request and number of page view to the backend in jason format

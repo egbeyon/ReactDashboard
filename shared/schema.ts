@@ -9,6 +9,8 @@ export const stockData = pgTable("stock_data", {
   quarter: text("quarter").notNull(),
   return: decimal("return").notNull(),
   volatility: decimal("volatility").notNull(),
+  net_return: decimal("net_return"),
+  net_market_return: decimal("net_market_return"),
   timestamp: timestamp("timestamp").defaultNow()
 });
 
@@ -28,6 +30,8 @@ export type StockDataResponse = {
         [quarter: string]: {
           return: number;
           volatility: number;
+          net_return?: number;
+          net_market_return?: number;
         }
       }>
     }]
