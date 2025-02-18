@@ -13,11 +13,13 @@ export default function Dashboard() {
   const [viewType, setViewType] = React.useState<ViewType>('quarterly');
 
   const { data, isLoading, error } = useQuery<StockDataResponse>({
-    queryKey: [`/api/data/${ticker}`],
+    queryKey: ['stockData', ticker], // Changed to array format for proper cache invalidation
     enabled: !!ticker,
     retry: 1,
     // Remove automatic refresh since earnings data is static for each quarter
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    // Ensure fresh data when ticker changes
+    staleTime: 0
   });
 
   return (

@@ -29,8 +29,12 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+    // Extract the endpoint from the queryKey array
+    const [_key, ticker] = queryKey as [string, string];
+    const endpoint = `/api/data/${ticker}`;
+
+    const res = await fetch(endpoint, {
+      credentials: "include"
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -47,7 +51,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity, 
+      staleTime: 0, // Always consider data stale to ensure fresh fetch on ticker change
       retry: false,
     },
     mutations: {
