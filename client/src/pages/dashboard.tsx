@@ -10,7 +10,8 @@ export default function Dashboard() {
 
   const { data, isLoading, error } = useQuery<StockDataResponse>({
     queryKey: [`/api/data/${ticker}`],
-    enabled: !!ticker
+    enabled: !!ticker,
+    retry: 1 //This line was added
   });
 
   return (
