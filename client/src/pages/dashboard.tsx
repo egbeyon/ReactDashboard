@@ -15,7 +15,10 @@ export default function Dashboard() {
   const { data, isLoading, error } = useQuery<StockDataResponse>({
     queryKey: [`/api/data/${ticker}`],
     enabled: !!ticker,
-    retry: 1
+    retry: 1,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: 15000 // Consider data stale after 15 seconds
   });
 
   return (
