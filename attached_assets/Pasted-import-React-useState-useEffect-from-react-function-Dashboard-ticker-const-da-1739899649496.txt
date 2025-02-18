@@ -1,0 +1,97 @@
+import React, { useState, useEffect } from 'react';
+
+function Dashboard({ ticker }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch(`/api/data/${ticker}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`${response.status} ${response.statusText}: ${errorData.message || 'An error occurred'}`);
+        }
+        const jsonData = await response.json();
+        setData(jsonData);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (ticker) {
+      fetchData();
+    }
+  }, [ticker]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  if (!data) {
+    return <div>No data available. Please enter a ticker.</div>;
+  }
+
+  const renderYearData = (yearData) => {
+    return yearData.map((yearItem, yearIndex) => {
+      const year = Object.keys(yearItem)[0];
+      const quarterlyData = yearItem[year][0].Quarterly;  // Accessing the Quarterly array
+      return (
+        <div key={yearIndex}>
+          <h3>{year}</h3>
+          {quarterlyData.map((quarterItem, quarterIndex) => {
+            const quarter = Object.keys(quarterItem)[0];
+            const quarterData = quarterItem[quarter];
+            return (
+              <div key={quarterIndex}>
+                <h4>{quarter}</h4>
+                <p>Return: {quarterData.return}</p>
+                <p>Volatility: {quarterData.volatility}</p>
+                {/* ... other data points */}
+              </div>
+            );
+          })}
+        </div>
+      );
+    });
+  };
+
+  return (
+    <div>
+      {data.Years.length > 0 ? renderYearData(data.Years) : <p>No data found.</p>}
+    </div>
+  );
+}
+
+function App() {
+  const [ticker, setTicker] = useState('AAPL'); // Default ticker
+  const [newTicker, setNewTicker] = useState('');
+
+  const handleTickerChange = (event) => {
+    setNewTicker(event.target.value);
+  };
+
+  const handleTickerSubmit = (event) => {
+    event.preventDefault();
+    setTicker(newTicker);
+  };
+
+  return (
+    <div>
+      <form onSubmit={handleTickerSubmit}>
+        <input type="text" value={newTicker} onChange={handleTickerChange} placeholder="Enter Ticker" />
+        <button type="submit">Search</button>
+      </form>
+      <Dashboard ticker={ticker} />
+    </div>
+  );
+}
+
+export default App;
